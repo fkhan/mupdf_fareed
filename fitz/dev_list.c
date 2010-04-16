@@ -79,59 +79,6 @@ fz_freedisplaynode(fz_displaynode *node)
 	fz_free(node);
 }
 
-//code change by kakai
-int
-fz_listnewid(fz_displaylist *list)
-{
-	if (list->last)
-	{
-		return list->last->id + 1;
-	}
-	else if (list->first)
-	{
-		return list->first->id + 1;
-	}
-	return 0;
-}
-
-void
-fz_addhighlightednode(fz_displaynode *node)
-{
-	node->ishighlighted = 1;
-}
-
-void
-fz_removehighlightednode(fz_displaynode *node)
-{
-	node->ishighlighted = 0;
-}
-
-void
-fz_addlinknode(fz_displaynode *node)
-{
-	node->isunderline = 1;
-}
-
-void
-fz_removelinknode(fz_displaynode *node)
-{
-	node->isunderline = 0;
-}
-
-void
-fz_addbookmarknode(fz_displaynode *node)
-{
-	node->isbookmark = 1;
-}
-
-void
-fz_removebookmarknode(fz_displaynode *node)
-{
-	node->isbookmark = 0;
-}
-
-//code change by kakai
-
 static void
 fz_listfillpath(void *user, fz_path *path, fz_matrix ctm,
 	fz_colorspace *colorspace, float *color, float alpha)
@@ -140,7 +87,7 @@ fz_listfillpath(void *user, fz_path *path, fz_matrix ctm,
 	node = fz_newdisplaynode(FZ_CMDFILLPATH, ctm, colorspace, color, alpha);
 	node->item.path = fz_clonepath(path);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -153,7 +100,7 @@ fz_liststrokepath(void *user, fz_path *path, fz_matrix ctm,
 	node = fz_newdisplaynode(FZ_CMDSTROKEPATH, ctm, colorspace, color, alpha);
 	node->item.path = fz_clonepath(path);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -165,7 +112,7 @@ fz_listclippath(void *user, fz_path *path, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDCLIPPATH, ctm, nil, nil, 0.0);
 	node->item.path = fz_clonepath(path);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -178,7 +125,7 @@ fz_listfilltext(void *user, fz_text *text, fz_matrix ctm,
 	node = fz_newdisplaynode(FZ_CMDFILLTEXT, ctm, colorspace, color, alpha);
 	node->item.text = fz_clonetext(text);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -191,7 +138,7 @@ fz_liststroketext(void *user, fz_text *text, fz_matrix ctm,
 	node = fz_newdisplaynode(FZ_CMDSTROKETEXT, ctm, colorspace, color, alpha);
 	node->item.text = fz_clonetext(text);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -203,7 +150,7 @@ fz_listcliptext(void *user, fz_text *text, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDCLIPTEXT, ctm, nil, nil, 0.0);
 	node->item.text = fz_clonetext(text);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -215,7 +162,7 @@ fz_listignoretext(void *user, fz_text *text, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDIGNORETEXT, ctm, nil, nil, 0.0);
 	node->item.text = fz_clonetext(text);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -226,7 +173,7 @@ fz_listpopclip(void *user)
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDPOPCLIP, fz_identity(), nil, nil, 0.0);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -238,7 +185,7 @@ fz_listfillshade(void *user, fz_shade *shade, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDFILLSHADE, ctm, nil, nil, 0.0);
 	node->item.shade = fz_keepshade(shade);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -250,7 +197,7 @@ fz_listfillimage(void *user, fz_pixmap *image, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDFILLIMAGE, ctm, nil, nil, 0.0);
 	node->item.image = fz_keeppixmap(image);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -263,7 +210,7 @@ fz_listfillimagemask(void *user, fz_pixmap *image, fz_matrix ctm,
 	node = fz_newdisplaynode(FZ_CMDFILLIMAGEMASK, ctm, colorspace, color, alpha);
 	node->item.image = fz_keeppixmap(image);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
@@ -275,7 +222,7 @@ fz_listclipimagemask(void *user, fz_pixmap *image, fz_matrix ctm)
 	node = fz_newdisplaynode(FZ_CMDCLIPIMAGEMASK, ctm, nil, nil, 0.0);
 	node->item.image = fz_keeppixmap(image);
 	//code change by kakai
-	node->id = fz_listnewid(user);
+	node->id = kno_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }

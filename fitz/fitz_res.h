@@ -174,15 +174,6 @@ fz_displaylist *fz_newdisplaylist(void);
 void fz_freedisplaylist(fz_displaylist *list);
 fz_device *fz_newlistdevice(fz_displaylist *list);
 void fz_executedisplaylist(fz_displaylist *list, fz_device *dev, fz_matrix ctm);
-//code change by kakai
-int fz_listnewid(fz_displaylist *list);
-void fz_addhighlightednode(fz_displaynode *node);
-void fz_removehighlightednode(fz_displaynode *node);
-void fz_addlinknode(fz_displaynode *node);
-void fz_removelinknode(fz_displaynode *node);
-void fz_addbookmarknode(fz_displaynode *node);
-void fz_removebookmarknode(fz_displaynode *node);
-//code change by kakai
 
 /*
  * Vector path buffer.

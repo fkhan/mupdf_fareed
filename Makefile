@@ -89,7 +89,7 @@ $(DIRS):
 # Sources
 #
 
-FITZ_HDR=fitz/fitz.h fitz/fitz_base.h fitz/fitz_draw.h fitz/fitz_stream.h fitz/fitz_res.h
+FITZ_HDR=fitz/fitz.h fitz/fitz_base.h fitz/fitz_draw.h fitz/fitz_stream.h fitz/fitz_res.h fitz/kno_fitz_res.h
 FITZ_SRC=$(addprefix fitz/, \
 	base_cpudep.c \
 	base_error.c base_memory.c base_string.c base_unicode.c  \
@@ -97,7 +97,7 @@ FITZ_SRC=$(addprefix fitz/, \
 	crypt_aes.c crypt_arc4.c crypt_md5.c \
 	filt_aesd.c filt_arc4.c filt_basic.c filt_dctd.c filt_faxd.c filt_faxdtab.c filt_flate.c \
 	filt_jbig2d.c filt_jpxd.c filt_lzwd.c filt_pipeline.c filt_predict.c \
-	dev_null.c dev_text.c dev_draw.c dev_list.c dev_trace.c \
+	dev_null.c dev_text.c dev_draw.c dev_list.c dev_trace.c kno_dev_list.c \
 	obj_array.c obj_dict.c obj_print.c obj_simple.c \
 	res_colorspace.c res_font.c res_shade.c res_pixmap.c \
 	res_path.c res_text.c \
