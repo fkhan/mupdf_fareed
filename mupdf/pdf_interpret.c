@@ -194,6 +194,7 @@ pdf_runxobject(pdf_csi *csi, pdf_xref *xref, fz_obj *resources, pdf_xobject *xob
 	if (xobj->resources)
 		resources = xobj->resources;
 
+	xobj->contents->rp = xobj->contents->bp;
 	error = pdf_runcsibuffer(csi, xref, resources, xobj->contents);
 	if (error)
 		return fz_rethrow(error, "cannot interpret XObject stream");
@@ -258,6 +259,8 @@ pdf_runextgstate(pdf_gstate *gstate, pdf_xref *xref, fz_obj *rdb, fz_obj *extgst
 		fz_obj *key = fz_dictgetkey(extgstate, i);
 		fz_obj *val = fz_dictgetval(extgstate, i);
 		char *s = fz_toname(key);
+		if (!s)
+			fz_throw("malformed /ExtGState dictionary");
 
 		if (!strcmp(s, "Font"))
 		{
@@ -380,6 +383,7 @@ pdf_runextgstate(pdf_gstate *gstate, pdf_xref *xref, fz_obj *rdb, fz_obj *extgst
 				return fz_rethrow(error, "cannot load xobject");
 				}
 				*/
+				puts("we encountered a soft mask");
 			}
 		}
 
@@ -1353,14 +1357,11 @@ pdf_runcsifile(pdf_csi *csi, pdf_xref *xref, fz_obj *rdb, fz_stream *file, char 
 fz_error
 pdf_runcsibuffer(pdf_csi *csi, pdf_xref *xref, fz_obj *rdb, fz_buffer *contents)
 {
-	fz_stream *file;
-	fz_error error;
-
-	contents->rp = contents->bp;
-	file = fz_openrbuffer(contents);
-	error = pdf_runcsifile(csi, xref, rdb, file, xref->scratch, sizeof xref->scratch);
+	char *buf = fz_malloc(65536);
+	fz_stream *file = fz_openrbuffer(contents);
+	fz_error error = pdf_runcsifile(csi, xref, rdb, file, buf, 65536);
 	fz_dropstream(file);
-	contents->rp = contents->bp;
+	fz_free(buf);
 	if (error)
 		return fz_rethrow(error, "cannot parse content stream");
 	return fz_okay;

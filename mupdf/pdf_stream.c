@@ -389,14 +389,7 @@ pdf_loadrawstream(fz_buffer **bufp, pdf_xref *xref, int num, int gen)
 	if (error)
 		return fz_rethrow(error, "cannot open raw stream (%d %d R)", num, gen);
 
-	*bufp = fz_readall(stm, 0);
-	error = fz_readerror(stm);
-	if (error)
-	{
-		fz_dropstream(stm);
-		return fz_rethrow(error, "cannot read raw stream (%d %d R)", num, gen);
-	}
-
+	*bufp = fz_readall(stm, 0); // TODO extract io errors
 	fz_dropstream(stm);
 	return fz_okay;
 }
@@ -414,14 +407,7 @@ pdf_loadstream(fz_buffer **bufp, pdf_xref *xref, int num, int gen)
 	if (error)
 		return fz_rethrow(error, "cannot open stream (%d %d R)", num, gen);
 
-	*bufp = fz_readall(stm, 0);
-	error = fz_readerror(stm);
-	if (error)
-	{
-		fz_dropstream(stm);
-		return fz_rethrow(error, "cannot read raw stream (%d %d R)", num, gen);
-	}
-
+	*bufp = fz_readall(stm, 0); // TODO extract io errors
 	fz_dropstream(stm);
 	return fz_okay;
 }

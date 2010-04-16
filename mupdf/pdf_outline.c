@@ -2,7 +2,7 @@
 #include "mupdf.h"
 
 static pdf_outline *
-pdf_loadoutlineimp(pdf_xref *xref, fz_obj *dict)
+loadoutline(pdf_xref *xref, fz_obj *dict)
 {
 	pdf_outline *node;
 	fz_obj *obj;
@@ -37,7 +37,7 @@ pdf_loadoutlineimp(pdf_xref *xref, fz_obj *dict)
 	obj = fz_dictgets(dict, "First");
 	if (obj)
 	{
-		node->child = pdf_loadoutlineimp(xref, obj);
+		node->child = loadoutline(xref, obj);
 	}
 
 	pdf_logpage("}\n");
@@ -45,7 +45,7 @@ pdf_loadoutlineimp(pdf_xref *xref, fz_obj *dict)
 	obj = fz_dictgets(dict, "Next");
 	if (obj)
 	{
-		node->next = pdf_loadoutlineimp(xref, obj);
+		node->next = loadoutline(xref, obj);
 	}
 
 	return node;
@@ -55,19 +55,21 @@ pdf_outline *
 pdf_loadoutline(pdf_xref *xref)
 {
 	pdf_outline *node;
-	fz_obj *root, *obj, *first;
+	fz_obj *obj;
+	fz_obj *first;
 
 	pdf_logpage("load outlines {\n");
 
 	node = nil;
 
-	root = fz_dictgets(xref->trailer, "Root");
-	obj = fz_dictgets(root, "Outlines");
+	obj = fz_dictgets(xref->root, "Outlines");
 	if (obj)
 	{
 		first = fz_dictgets(obj, "First");
 		if (first)
-			node = pdf_loadoutlineimp(xref, first);
+		{
+			node = loadoutline(xref, first);
+		}
 	}
 
 	pdf_logpage("}\n");

@@ -243,6 +243,7 @@ static void fillrect(int x, int y, int w, int h)
 
 static void invertcopyrect()
 {
+return ;
 	unsigned *p;
 	int x, y;
 

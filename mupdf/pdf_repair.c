@@ -137,15 +137,18 @@ atobjend:
 }
 
 fz_error
-pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
+pdf_repairxref(pdf_xref *xref, char *filename)
 {
 	fz_error error;
+	fz_stream *file;
 	fz_obj *obj;
 
 	struct entry *list = nil;
 	int listlen;
 	int listcap;
 	int maxoid = 0;
+
+	char buf[65536];
 
 	int oid = 0;
 	int gen = 0;
@@ -158,12 +161,15 @@ pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
 	int next;
 	int i;
 
-	pdf_logxref("repairxref %p\n", xref);
+	error = fz_openrfile(&file, filename);
+	if (error)
+		return fz_rethrow(error, "cannot open file '%s'", filename);
+
+	pdf_logxref("repairxref '%s' %p\n", filename, xref);
+
+	xref->file = file;
 
 	/* TODO: extract version */
-	xref->version = 14;
-
-	fz_seek(xref->file, 0, 0);
 
 	listlen = 0;
 	listcap = 1024;
@@ -171,14 +177,14 @@ pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
 
 	while (1)
 	{
-		tmpofs = fz_tell(xref->file);
+		tmpofs = fz_tell(file);
 		if (tmpofs < 0)
 		{
 			error = fz_throw("cannot tell in file");
 			goto cleanup;
 		}
 
-		error = pdf_lex(&tok, xref->file, buf, bufsize, &len);
+		error = pdf_lex(&tok, file, buf, sizeof buf, &len);
 		if (error)
 		{
 			error = fz_rethrow(error, "cannot scan for objects");
@@ -195,7 +201,7 @@ pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
 
 		if (tok == PDF_TOBJ)
 		{
-			error = fz_repairobj(xref->file, buf, bufsize, &stmofs, &stmlen, &isroot, &isinfo);
+			error = fz_repairobj(file, buf, sizeof buf, &stmofs, &stmlen, &isroot, &isinfo);
 			if (error)
 			{
 				error = fz_rethrow(error, "cannot parse object (%d %d R)", oid, gen);
@@ -234,7 +240,7 @@ pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
 		}
 
 		if (tok == PDF_TERROR)
-			fz_readbyte(xref->file);
+			fz_readbyte(file);
 
 		if (tok == PDF_TEOF)
 			break;
@@ -322,6 +328,9 @@ pdf_repairxref(pdf_xref *xref, char *buf, int bufsize)
 	return fz_okay;
 
 cleanup:
+	fz_dropstream(file);
+	xref->file = nil; /* don't keep the stale pointer */
 	fz_free(list);
 	return error; /* already rethrown */
 }
+

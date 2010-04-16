@@ -72,14 +72,16 @@ typedef struct fz_device_s fz_device;
 
 struct fz_device_s
 {
+	fz_bbox selection;
 	void *user;
+
 	void (*freeuser)(void *);
 
 	void (*fillpath)(void *, fz_path *, fz_matrix, fz_colorspace *, float *color, float alpha);
 	void (*strokepath)(void *, fz_path *, fz_matrix, fz_colorspace *, float *color, float alpha);
 	void (*clippath)(void *, fz_path *, fz_matrix);
 
-	void (*filltext)(void *, fz_text *, fz_matrix, fz_colorspace *, float *color, float alpha);
+	void (*filltext)(void *, fz_text *, fz_matrix, fz_colorspace *, float *color, float alpha, fz_bbox bbox);
 	void (*stroketext)(void *, fz_text *, fz_matrix, fz_colorspace *, float *color, float alpha);
 	void (*cliptext)(void *, fz_text *, fz_matrix);
 	void (*ignoretext)(void *, fz_text *, fz_matrix);
@@ -96,6 +98,8 @@ fz_device *fz_newdevice(void *user);
 void fz_freedevice(fz_device *dev);
 
 fz_device *fz_newtracedevice(void);
+
+fz_device *fz_newdrawdevice(fz_pixmap *dest);
 
 /* Text extraction device */
 
@@ -158,6 +162,12 @@ struct fz_displaynode_s
 		fz_shade *shade;
 		fz_pixmap *image;
 	} item;
+	//code change by kakai
+	int id;
+	int ishighlighted;
+	int isunderline;
+	int isbookmark;
+	//code change by kakai
 	fz_matrix ctm;
 	fz_colorspace *colorspace;
 	float alpha;
@@ -168,6 +178,15 @@ fz_displaylist *fz_newdisplaylist(void);
 void fz_freedisplaylist(fz_displaylist *list);
 fz_device *fz_newlistdevice(fz_displaylist *list);
 void fz_executedisplaylist(fz_displaylist *list, fz_device *dev, fz_matrix ctm);
+//code change by kakai
+int fz_listnewid();
+void fz_addhighlightednode(fz_displaynode *node);
+void fz_removehighlightednode(fz_displaynode *node);
+void fz_addlinknode(fz_displaynode *node);
+void fz_removelinknode(fz_displaynode *node);
+void fz_addbookmarknode(fz_displaynode *node);
+void fz_removebookmarknode(fz_displaynode *node);
+//code change by kakai
 
 /*
  * Vector path buffer.
@@ -223,6 +242,7 @@ fz_path *fz_clonepath(fz_path *old);
 
 fz_rect fz_boundpath(fz_path *path, fz_matrix ctm, int dostroke);
 void fz_debugpath(fz_path *, int indent);
+void fz_printpath(fz_path *, int indent);
 
 /*
  * Text buffer.
@@ -320,6 +340,12 @@ struct fz_font_s
 	fz_rect bbox;
 };
 
+struct fz_glyph_s
+{
+	int x, y, w, h;
+	unsigned char *samples;
+};
+
 fz_error fz_newfreetypefont(fz_font **fontp, char *name, int substitute);
 fz_error fz_loadfreetypefontfile(fz_font *font, char *path, int index);
 fz_error fz_loadfreetypefontbuffer(fz_font *font, unsigned char *data, int len, int index);
@@ -345,6 +371,7 @@ struct fz_shade_s
 	fz_rect bbox;		/* can be fz_infiniterect */
 	fz_colorspace *cs;
 
+	/* used by build.c -- not used in drawshade.c */
 	fz_matrix matrix;	/* matrix from pattern dict */
 	int usebackground;	/* background color for fills but not 'sh' */
 	float background[FZ_MAXCOLORS];

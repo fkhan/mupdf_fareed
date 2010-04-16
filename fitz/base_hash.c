@@ -11,7 +11,8 @@
 
 #include "fitz.h"
 
-enum { MAXKEYLEN = 48 };
+enum { MAXKEYLEN = 16 };
+
 typedef struct fz_hashentry_s fz_hashentry;
 
 struct fz_hashentry_s
