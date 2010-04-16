@@ -5,6 +5,8 @@
 #error "fitz.h must be included before mupdf.h"
 #endif
 
+typedef struct pdf_xref_s pdf_xref;
+
 void pdf_logxref(char *fmt, ...);
 void pdf_logrsrc(char *fmt, ...);
 void pdf_logfont(char *fmt, ...);
@@ -114,7 +116,6 @@ int pdf_authenticatepassword(pdf_xref *xref, char *pw);
  */
 
 typedef struct pdf_xrefentry_s pdf_xrefentry;
-/* typedef struct pdf_xref_s pdf_xref; -- already defined in fitz_stream.h */
 
 struct pdf_xref_s
 {
@@ -122,10 +123,7 @@ struct pdf_xref_s
 	int version;
 	int startxref;
 	pdf_crypt *crypt;
-
-	fz_obj *trailer;		/* TODO split this into root/info/encrypt/id */
-	fz_obj *root;			/* resolved catalog dict */
-	fz_obj *info;			/* resolved info dict */
+	fz_obj *trailer;
 
 	int len;
 	int cap;
@@ -133,6 +131,8 @@ struct pdf_xref_s
 
 	struct pdf_store_s *store;
 	struct pdf_outline_s *outlines;
+
+	char scratch[65536];
 };
 
 struct pdf_xrefentry_s
@@ -144,15 +144,10 @@ struct pdf_xrefentry_s
 	int type;	/* 0=unset (f)ree i(n)use (o)bjstm */
 };
 
-pdf_xref * pdf_newxref(void);
-fz_error pdf_repairxref(pdf_xref *, char *filename);
-fz_error pdf_loadxref(pdf_xref *, char *filename);
-fz_error pdf_initxref(pdf_xref *);
-fz_error pdf_decryptxref(pdf_xref *);
-
+pdf_xref * pdf_openxref(char *filename);
+void pdf_closexref(pdf_xref *);
 void pdf_debugxref(pdf_xref *);
 void pdf_flushxref(pdf_xref *, int force);
-void pdf_closexref(pdf_xref *);
 
 fz_error pdf_cacheobject(pdf_xref *, int oid, int gen);
 fz_error pdf_loadobject(fz_obj **objp, pdf_xref *, int oid, int gen);
@@ -164,11 +159,8 @@ fz_error pdf_loadstream(fz_buffer **bufp, pdf_xref *xref, int oid, int gen);
 fz_error pdf_openrawstream(fz_stream **stmp, pdf_xref *, int oid, int gen);
 fz_error pdf_openstream(fz_stream **stmp, pdf_xref *, int oid, int gen);
 
-fz_error pdf_garbagecollect(pdf_xref *xref);
-fz_error pdf_transplant(pdf_xref *dst, pdf_xref *src, fz_obj **newp, fz_obj *old);
-
 /* private */
-fz_error pdf_loadobjstm(pdf_xref *xref, int oid, int gen, char *buf, int cap);
+extern fz_error pdf_repairxref(pdf_xref *xref, char *buf, int bufsize);
 
 /*
  * Resource store
@@ -255,15 +247,6 @@ void pdf_droppattern(pdf_pattern *pat);
  * Shading
  */
 
-void pdf_setmeshvalue(float *mesh, int i, float x, float y, float t);
-fz_error pdf_loadshadefunction(fz_shade *shade, pdf_xref *xref, fz_obj *dict, float t0, float t1);
-fz_error pdf_loadtype1shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype2shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype3shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype4shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype5shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype6shade(fz_shade *, pdf_xref *, fz_obj *dict);
-fz_error pdf_loadtype7shade(fz_shade *, pdf_xref *, fz_obj *dict);
 fz_error pdf_loadshade(fz_shade **shadep, pdf_xref *xref, fz_obj *obj);
 
 /*
@@ -479,7 +462,6 @@ fz_error pdf_loadtounicode(pdf_fontdesc *font, pdf_xref *xref, char **strings, c
 fz_error pdf_loadbuiltinfont(pdf_fontdesc *font, char *basefont);
 fz_error pdf_loadembeddedfont(pdf_fontdesc *font, pdf_xref *xref, fz_obj *stmref);
 fz_error pdf_loadsystemfont(pdf_fontdesc *font, char *basefont, char *collection);
-fz_error pdf_loadsubstitutefont(pdf_fontdesc *font, int fdflags, char *collection);
 
 /* type3.c */
 fz_error pdf_loadtype3font(pdf_fontdesc **fontp, pdf_xref *xref, fz_obj *rdb, fz_obj *obj);
@@ -549,7 +531,6 @@ struct pdf_outline_s
 	pdf_outline *next;
 };
 
-fz_error pdf_loadnametree(fz_obj **dictp, pdf_xref *xref, fz_obj *root);
 fz_obj *pdf_lookupdest(pdf_xref *xref, fz_obj *nameddest);
 
 pdf_link *pdf_newlink(pdf_linkkind kind, fz_rect rect, fz_obj *dest);

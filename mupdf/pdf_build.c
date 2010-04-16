@@ -230,7 +230,6 @@ pdf_showpattern(pdf_csi *csi, pdf_pattern *pat, pdf_xref *xref, fz_rect bbox, in
 		{
 			gstate->ctm = fz_concat(fz_translate(x * pat->xstep, y * pat->ystep), ptm);
 			csi->topctm = gstate->ctm;
-			pat->contents->rp = pat->contents->bp;
 			error = pdf_runcsibuffer(csi, xref, pat->resources, pat->contents);
 			if (error)
 				fz_catch(error, "cannot render pattern tile");
@@ -461,7 +460,7 @@ pdf_flushtext(pdf_csi *csi)
 		case PDF_MINDEXED:
 		case PDF_MLAB:
 			csi->dev->filltext(csi->dev->user, csi->text, gstate->ctm,
-				gstate->fill.cs, gstate->fill.v, gstate->fill.alpha, csi->dev->selection);
+				gstate->fill.cs, gstate->fill.v, gstate->fill.alpha);
 			break;
 		case PDF_MPATTERN:
 			fz_warn("pattern filled text not supported yet");

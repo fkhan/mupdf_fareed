@@ -7,8 +7,6 @@
 #ifndef _FITZ_STREAM_H_
 #define _FITZ_STREAM_H_
 
-typedef struct pdf_xref_s pdf_xref; /* this file is about to be merged with mupdf */
-
 typedef struct fz_obj_s fz_obj;
 typedef struct fz_keyval_s fz_keyval;
 
@@ -59,7 +57,7 @@ struct fz_obj_s
 		struct {
 			int num;
 			int gen;
-			pdf_xref *xref;
+			struct pdf_xref_s *xref;
 			fz_obj *obj;
 		} r;
 	} u;
@@ -71,7 +69,7 @@ fz_obj * fz_newint(int i);
 fz_obj * fz_newreal(float f);
 fz_obj * fz_newname(char *str);
 fz_obj * fz_newstring(char *str, int len);
-fz_obj * fz_newindirect(int num, int gen, pdf_xref *xref);
+fz_obj * fz_newindirect(int num, int gen, struct pdf_xref_s *xref);
 
 fz_obj * fz_newarray(int initialcap);
 fz_obj * fz_newdict(int initialcap);
@@ -105,8 +103,6 @@ char *fz_tostrbuf(fz_obj *obj);
 int fz_tostrlen(fz_obj *obj);
 int fz_tonum(fz_obj *obj);
 int fz_togen(fz_obj *obj);
-
-fz_obj * fz_newnamefromstring(fz_obj *str);
 
 int fz_arraylen(fz_obj *array);
 fz_obj *fz_arrayget(fz_obj *array, int i);
@@ -266,10 +262,6 @@ fz_error fz_setjbig2dglobalstream(fz_filter *filter, unsigned char *buf, int len
  * For further encapsulation in filters, or not.
  */
 
-/* crc-32 checksum */
-
-unsigned long fz_crc32(unsigned long crc, unsigned char *buf, int len);
-
 /* md5 digests */
 
 typedef struct fz_md5_s fz_md5;
@@ -364,9 +356,6 @@ fz_error fz_seek(fz_stream *stm, int offset, int whence);
 /*
  * Input stream functions.
  */
-
-int fz_rtell(fz_stream *stm);
-fz_error fz_rseek(fz_stream *stm, int offset, int whence);
 
 fz_error fz_readimp(fz_stream *stm);
 fz_error fz_read(int *np, fz_stream *stm, unsigned char *buf, int len);

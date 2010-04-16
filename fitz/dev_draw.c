@@ -1,35 +1,10 @@
 #include "fitz.h"
-#include <ft2build.h>
-#include FT_FREETYPE_H
 
 #define QUANT(x,a) (((int)((x) * (a))) / (a))
 #define HSUBPIX 5.0
 #define VSUBPIX 5.0
 
 #define MAXCLIP 64
-
-//code change by kakai
-#if ((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR == 1)) || \
-	((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR == 2)) || \
-	((FREETYPE_MAJOR == 2) && (FREETYPE_MINOR == 3) && (FREETYPE_PATCH < 8))
-
-int FT_Get_Advance(FT_Face face, int gid, int masks, FT_Fixed *out)
-{
-	int fterr;
-	fterr = FT_Load_Glyph(face, gid, masks | FT_LOAD_IGNORE_TRANSFORM);
-	if (fterr)
-		return fterr;
-	*out = face->glyph->advance.x * 1024;
-	return 0;
-}
-
-#else
-
-#include FT_ADVANCES_H
-
-#endif
-//code change by kakai
-
 
 typedef struct fz_drawdevice_s fz_drawdevice;
 
@@ -267,7 +242,7 @@ fz_drawclippath(void *user, fz_path *path, fz_matrix ctm)
 }
 
 static void
-drawglyph(unsigned char *argb, fz_pixmap *dst, fz_glyph *src, int xorig, int yorig)
+drawglyph(unsigned char *argb, fz_pixmap *dst, fz_pixmap *src, int xorig, int yorig)
 {
 	unsigned char *dp, *sp;
 	int w, h;
@@ -308,16 +283,15 @@ drawglyph(unsigned char *argb, fz_pixmap *dst, fz_glyph *src, int xorig, int yor
 
 static void
 fz_drawfilltext(void *user, fz_text *text, fz_matrix ctm,
-	fz_colorspace *colorspace, float *color, float alpha, fz_bbox bbox)
+	fz_colorspace *colorspace, float *color, float alpha)
 {
 	fz_drawdevice *dev = user;
 	fz_bbox clip;
 	fz_matrix tm, trm;
-	fz_glyph glyph;
+	fz_pixmap *glyph;
 	int i, x, y, gid;
 	unsigned char tmp[7];
 	unsigned char *argb;
-	float size;
 
 	if (dev->model)
 	{
@@ -344,8 +318,6 @@ fz_drawfilltext(void *user, fz_text *text, fz_matrix ctm,
 
 	tm = text->trm;
 
-	size = fz_matrixexpansion(tm);
-
 	for (i = 0; i < text->len; i++)
 	{
 		gid = text->els[i].gid;
@@ -357,51 +329,12 @@ fz_drawfilltext(void *user, fz_text *text, fz_matrix ctm,
 		trm.e = QUANT(trm.e - floor(trm.e), HSUBPIX);
 		trm.f = QUANT(trm.f - floor(trm.f), VSUBPIX);
 
-		int screenx = x - dev->dest->x;
-		int screeny = y - dev->dest->y;
-
-		if (screenx >= bbox.x0 && screenx <= bbox.x1 && screeny >= bbox.y0 && screeny <= bbox.y1)
+		glyph = fz_renderglyph(dev->cache, text->font, gid, trm);
+		if (glyph)
 		{
-
-			fz_path *path;
-			float adv;
-			float background[3];
-			background[0] = 1.00;
-			background[1] = 0.85;
-			background[2] = 0.25;
-
-			if (text->font->ftface)
-			{
-				FT_Fixed ftadv;
-				FT_Get_Advance(text->font->ftface, gid, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING, &ftadv);
-				adv = ftadv / 65536.0;
-			}
-			else
-			{
-				adv = text->font->t3widths[gid];
-			}
-
-			float x0 = x;
-			float y0 = y + 0.2 * size;
-			float x1 = x + adv * 0.001 * size;
-			float y1 = y - 0.8 * size;
-
-			path = fz_newpath();
-			fz_moveto(path, x0, y0);
-			fz_lineto(path, x1, y0);
-			fz_lineto(path, x1, y1);
-			fz_lineto(path, x0, y1);
-			fz_closepath(path);
-			//fz_debugpath(path, 100);
-			fz_drawfillpath(dev, path, fz_identity(), pdf_devicergb,  background, 1.0);
-			fz_freepath(path);
-//			fz_renderglyph(dev->cache, &glyph, text->font, gid, trm);
-//glyph.samples = 'f';
-//			drawglyph(argb, dev->dest, &glyph, x, y);
-//return;
+			drawglyph(argb, dev->dest, glyph, x, y);
+			fz_droppixmap(glyph);
 		}
-		fz_renderglyph(dev->cache, &glyph, text->font, gid, trm);
-		drawglyph(argb, dev->dest, &glyph, x, y);
 	}
 }
 
@@ -530,7 +463,8 @@ fz_drawfillimage(void *user, fz_pixmap *image, fz_matrix ctm)
 	fz_bbox bbox;
 	fz_bbox clip;
 	int dx, dy;
-	fz_pixmap *temp;
+	fz_pixmap *scaled = nil;
+	fz_pixmap *converted = nil;
 	fz_matrix imgmat;
 	fz_matrix invmat;
 	int fa, fb, fc, fd;
@@ -566,15 +500,15 @@ fz_drawfillimage(void *user, fz_pixmap *image, fz_matrix ctm)
 
 	if (dx != 1 || dy != 1)
 	{
-		temp = fz_scalepixmap(image, dx, dy);
-		image = temp;
+		scaled = fz_scalepixmap(image, dx, dy);
+		image = scaled;
 	}
 
 	if (image->colorspace != dev->model)
 	{
-		temp = fz_newpixmap(dev->model, image->x, image->y, image->w, image->h);
-		fz_convertpixmap(image->colorspace, image, dev->model, temp);
-		image = temp;
+		converted = fz_newpixmap(dev->model, image->x, image->y, image->w, image->h);
+		fz_convertpixmap(image->colorspace, image, dev->model, converted);
+		image = converted;
 	}
 
 	imgmat.a = 1.0 / image->w;
@@ -607,6 +541,11 @@ fz_drawfillimage(void *user, fz_pixmap *image, fz_matrix ctm)
 	else
 		fz_img_1o1(image->samples, image->w, image->h, PDST(dev->dest),
 			u0, v0, fa, fb, fc, fd, w, h);
+
+	if (scaled)
+		fz_droppixmap(scaled);
+	if (converted)
+		fz_droppixmap(converted);
 }
 
 static void
@@ -618,7 +557,7 @@ fz_drawfillimagemask(void *user, fz_pixmap *image, fz_matrix ctm,
 	fz_bbox bbox;
 	fz_bbox clip;
 	int dx, dy;
-	fz_pixmap *temp;
+	fz_pixmap *scaled = nil;
 	fz_matrix imgmat;
 	fz_matrix invmat;
 	int fa, fb, fc, fd;
@@ -648,8 +587,8 @@ fz_drawfillimagemask(void *user, fz_pixmap *image, fz_matrix ctm,
 
 	if (dx != 1 || dy != 1)
 	{
-		temp = fz_scalepixmap(image, dx, dy);
-		image = temp;
+		scaled = fz_scalepixmap(image, dx, dy);
+		image = scaled;
 	}
 
 	imgmat.a = 1.0 / image->w;
@@ -696,6 +635,9 @@ fz_drawfillimagemask(void *user, fz_pixmap *image, fz_matrix ctm,
 		fz_img_1o1(image->samples, image->w, image->h, PDST(dev->dest),
 			u0, v0, fa, fb, fc, fd, w, h);
 	}
+
+	if (scaled)
+		fz_droppixmap(scaled);
 }
 
 static void
@@ -706,7 +648,7 @@ fz_drawclipimagemask(void *user, fz_pixmap *image, fz_matrix ctm)
 	fz_bbox clip, bbox;
 	fz_pixmap *mask, *dest;
 	int dx, dy;
-	fz_pixmap *temp;
+	fz_pixmap *scaled = nil;
 	fz_matrix imgmat;
 	fz_matrix invmat;
 	int fa, fb, fc, fd;
@@ -737,8 +679,8 @@ fz_drawclipimagemask(void *user, fz_pixmap *image, fz_matrix ctm)
 
 	if (dx != 1 || dy != 1)
 	{
-		temp = fz_scalepixmap(image, dx, dy);
-		image = temp;
+		scaled = fz_scalepixmap(image, dx, dy);
+		image = scaled;
 	}
 
 	imgmat.a = 1.0 / image->w;
@@ -778,6 +720,9 @@ fz_drawclipimagemask(void *user, fz_pixmap *image, fz_matrix ctm)
 	dev->clipstack[dev->cliptop].dest = dev->dest;
 	dev->dest = dest;
 	dev->cliptop++;
+
+	if (scaled)
+		fz_droppixmap(scaled);
 }
 
 static void
@@ -786,21 +731,20 @@ fz_drawfreeuser(void *user)
 	fz_drawdevice *dev = user;
 	if (dev->model)
 		fz_dropcolorspace(dev->model);
-	fz_freeglyphcache(dev->cache);
 	fz_freegel(dev->gel);
 	fz_freeael(dev->ael);
 	fz_free(dev);
 }
 
 fz_device *
-fz_newdrawdevice(fz_pixmap *dest)
+fz_newdrawdevice(fz_glyphcache *cache, fz_pixmap *dest)
 {
 	fz_drawdevice *ddev = fz_malloc(sizeof(fz_drawdevice));
 	if (dest->colorspace)
 		ddev->model = fz_keepcolorspace(dest->colorspace);
 	else
 		ddev->model = nil;
-	ddev->cache = fz_newglyphcache(512, 512 * 512);
+	ddev->cache = cache;
 	ddev->gel = fz_newgel();
 	ddev->ael = fz_newael();
 	ddev->dest = dest;

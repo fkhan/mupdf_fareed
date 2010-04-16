@@ -24,7 +24,7 @@ fz_newdisplaynode(fz_displaycommand cmd, fz_matrix ctm,
 	node->alpha = alpha;
 	//code change by kakai
 	node->id = -1;
-	node->ishighlishted = -1;
+	node->ishighlighted = -1;
 	node->isbookmark = -1;
 	node->isunderline = -1;
 	//code change by kakai
@@ -78,11 +78,20 @@ fz_freedisplaynode(fz_displaynode *node)
 		fz_dropcolorspace(node->colorspace);
 	fz_free(node);
 }
+
 //code change by kakai
 int
-fz_listnewid()
+fz_listnewid(fz_displaylist *list)
 {
-	return list->last->id + 1;
+	if (list->last)
+	{
+		return list->last->id + 1;
+	}
+	else if (list->first)
+	{
+		return list->first->id + 1;
+	}
+	return 0;
 }
 
 void
@@ -125,17 +134,16 @@ fz_removebookmarknode(fz_displaynode *node)
 
 static void
 fz_listfillpath(void *user, fz_path *path, fz_matrix ctm,
-	fz_colorspace *colorspace, float *color, float alpha;)
+	fz_colorspace *colorspace, float *color, float alpha)
 {
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDFILLPATH, ctm, colorspace, color, alpha);
 	node->item.path = fz_clonepath(path);
 	//code change by kakai
-	node->id = fz_listnewid();
+	node->id = fz_listnewid(user);
 	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
-
 
 static void
 fz_liststrokepath(void *user, fz_path *path, fz_matrix ctm,
@@ -144,7 +152,9 @@ fz_liststrokepath(void *user, fz_path *path, fz_matrix ctm,
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDSTROKEPATH, ctm, colorspace, color, alpha);
 	node->item.path = fz_clonepath(path);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -154,7 +164,9 @@ fz_listclippath(void *user, fz_path *path, fz_matrix ctm)
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDCLIPPATH, ctm, nil, nil, 0.0);
 	node->item.path = fz_clonepath(path);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -165,7 +177,9 @@ fz_listfilltext(void *user, fz_text *text, fz_matrix ctm,
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDFILLTEXT, ctm, colorspace, color, alpha);
 	node->item.text = fz_clonetext(text);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -176,7 +190,9 @@ fz_liststroketext(void *user, fz_text *text, fz_matrix ctm,
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDSTROKETEXT, ctm, colorspace, color, alpha);
 	node->item.text = fz_clonetext(text);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -184,9 +200,11 @@ static void
 fz_listcliptext(void *user, fz_text *text, fz_matrix ctm)
 {
 	fz_displaynode *node;
-	node = fz_newdisplaynode(FZ_CMDCLIPPATH, ctm, nil, nil, 0.0);
+	node = fz_newdisplaynode(FZ_CMDCLIPTEXT, ctm, nil, nil, 0.0);
 	node->item.text = fz_clonetext(text);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -194,9 +212,11 @@ static void
 fz_listignoretext(void *user, fz_text *text, fz_matrix ctm)
 {
 	fz_displaynode *node;
-	node = fz_newdisplaynode(FZ_CMDCLIPPATH, ctm, nil, nil, 0.0);
+	node = fz_newdisplaynode(FZ_CMDIGNORETEXT, ctm, nil, nil, 0.0);
 	node->item.text = fz_clonetext(text);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -205,7 +225,9 @@ fz_listpopclip(void *user)
 {
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDPOPCLIP, fz_identity(), nil, nil, 0.0);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -215,7 +237,9 @@ fz_listfillshade(void *user, fz_shade *shade, fz_matrix ctm)
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDFILLSHADE, ctm, nil, nil, 0.0);
 	node->item.shade = fz_keepshade(shade);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -225,7 +249,9 @@ fz_listfillimage(void *user, fz_pixmap *image, fz_matrix ctm)
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDFILLIMAGE, ctm, nil, nil, 0.0);
 	node->item.image = fz_keeppixmap(image);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -236,7 +262,9 @@ fz_listfillimagemask(void *user, fz_pixmap *image, fz_matrix ctm,
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDFILLIMAGEMASK, ctm, colorspace, color, alpha);
 	node->item.image = fz_keeppixmap(image);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -246,7 +274,9 @@ fz_listclipimagemask(void *user, fz_pixmap *image, fz_matrix ctm)
 	fz_displaynode *node;
 	node = fz_newdisplaynode(FZ_CMDCLIPIMAGEMASK, ctm, nil, nil, 0.0);
 	node->item.image = fz_keeppixmap(image);
-	node->id = fz_listnewid();
+	//code change by kakai
+	node->id = fz_listnewid(user);
+	//code change by kakai
 	fz_appenddisplaynode(user, node);
 }
 
@@ -317,7 +347,7 @@ fz_executedisplaylist(fz_displaylist *list, fz_device *dev, fz_matrix topctm)
 			break;
 		case FZ_CMDFILLTEXT:
 			dev->filltext(dev->user, node->item.text, ctm,
-				node->colorspace, node->color, node->alpha, dev->selection);
+				node->colorspace, node->color, node->alpha);
 			break;
 		case FZ_CMDSTROKETEXT:
 			dev->stroketext(dev->user, node->item.text, ctm,
@@ -338,6 +368,7 @@ fz_executedisplaylist(fz_displaylist *list, fz_device *dev, fz_matrix topctm)
 		case FZ_CMDFILLIMAGEMASK:
 			dev->fillimagemask(dev->user, node->item.image, ctm,
 				node->colorspace, node->color, node->alpha);
+			break;
 		case FZ_CMDCLIPIMAGEMASK:
 			dev->clipimagemask(dev->user, node->item.image, ctm);
 			break;
