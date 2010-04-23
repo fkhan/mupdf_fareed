@@ -4,7 +4,11 @@
  * uses a number of callbacks to the GUI app.
  */
 
+#include <X11/Xlib.h>
+
+
 typedef struct pdfapp_s pdfapp_t;
+
 
 enum { ARROW, HAND, WAIT };
 
@@ -59,6 +63,17 @@ struct pdfapp_s
 	int selx, sely;
 	fz_bbox selr;
 
+	//code change by kakai
+        XRectangle *selrects;
+        int sellen;
+
+        /* simple, one page selection for now */
+        int firstline, lastline;
+        int firstchar, lastchar;
+
+	unsigned long highlightedcolor;
+	//code change by kakai
+
 	/* client context storage */
 	void *userdata;
 };
@@ -73,4 +88,3 @@ void pdfapp_onkey(pdfapp_t *app, int c);
 void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int state);
 void pdfapp_oncopy(pdfapp_t *app, unsigned short *ucsbuf, int ucslen);
 void pdfapp_onresize(pdfapp_t *app, int w, int h);
-

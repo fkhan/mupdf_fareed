@@ -265,6 +265,7 @@ $(CMAP_LIB): $(CMAP_OBJ)
 
 APPS = $(PDFSHOW_EXE) $(PDFCLEAN_EXE) $(PDFDRAW_EXE) $(PDFEXTRACT_EXE) $(PDFINFO_EXE) $(PDFVIEW_EXE)
 
+PDFKNOAPP_HDR = apps/kno_pdfapp.h
 PDFAPP_HDR = apps/pdfapp.h
 PDFTOOL_HDR = apps/pdftool.h
 
@@ -311,15 +312,15 @@ $(PDFINFO_OBJ): $(MUPDF_HDR) $(PDFTOOL_HDR)
 $(PDFINFO_EXE): $(PDFINFO_OBJ) $(MUPDF_LIB) $(FONT_LIB) $(CMAP_LIB) $(FITZ_LIB) $(DRAW_LIB)
 	$(LD_CMD)
 
-X11VIEW_SRC=apps/x11_main.c apps/x11_image.c apps/pdfapp.c
+X11VIEW_SRC=apps/x11_main.c apps/x11_image.c apps/kno_pdfapp.c apps/pdfapp.c 
 X11VIEW_OBJ=$(X11VIEW_SRC:apps/%.c=$(OBJDIR)/%.o)
 X11VIEW_EXE=$(OBJDIR)/mupdf
 
-$(X11VIEW_OBJ): $(MUPDF_HDR) $(PDFAPP_HDR)
+$(X11VIEW_OBJ): $(MUPDF_HDR) $(PDFKNOAPP_HDR) $(PDFAPP_HDR) 
 $(X11VIEW_EXE): $(X11VIEW_OBJ) $(MUPDF_LIB) $(FONT_LIB) $(CMAP_LIB) $(FITZ_LIB) $(DRAW_LIB)
 	$(LD_CMD) $(X11LIBS)
 
-WINVIEW_SRC=apps/win_main.c apps/pdfapp.c
+WINVIEW_SRC=apps/win_main.c apps/kno_pdfapp.c apps/pdfapp.c 
 WINVIEW_RES=apps/win_res.rc
 WINVIEW_OBJ=$(WINVIEW_SRC:apps/%.c=$(OBJDIR)/%.o) $(WINVIEW_RES:apps/%.rc=$(OBJDIR)/%.o)
 WINVIEW_EXE=$(OBJDIR)/mupdf.exe
@@ -327,7 +328,7 @@ WINVIEW_EXE=$(OBJDIR)/mupdf.exe
 $(OBJDIR)/%.o: apps/%.rc
 	windres -i $< -o $@ --include-dir=apps
 
-$(WINVIEW_OBJ): $(MUPDF_HDR) $(PDFAPP_HDR)
+$(WINVIEW_OBJ): $(MUPDF_HDR)  $(PDFKNOAPP_HDR) $(PDFAPP_HDR)
 $(WINVIEW_EXE): $(WINVIEW_OBJ) $(MUPDF_LIB) $(FONT_LIB) $(CMAP_LIB) $(FITZ_LIB) $(DRAW_LIB)
 	$(LD_CMD) $(W32LIBS)
 

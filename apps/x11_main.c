@@ -269,12 +269,26 @@ static void invertcopyrect()
 	justcopied = 1;
 }
 
+static void drawselection(pdfapp_t *app, Pixmap pix)
+{
+    if (app->sellen) {
+        XSetFunction(xdpy, xgc, GXand);
+
+        XSetForeground(xdpy, xgc, app->highlightedcolor);
+        XFillRectangles(xdpy, pix, xgc, app->selrects, app->sellen);
+        XSetFunction(xdpy, xgc, GXcopy);
+    }
+}
+
 static void winblit(pdfapp_t *app)
 {
-	int x0 = gapp.panx;
+	int x0 = gapp.panx; 
 	int y0 = gapp.pany;
 	int x1 = gapp.panx + gapp.image->w;
 	int y1 = gapp.pany + gapp.image->h;
+
+        Pixmap pix;
+
 
 	XSetForeground(xdpy, xgc, xbgcolor.pixel);
 	fillrect(0, 0, x0, gapp.winh);
@@ -286,10 +300,11 @@ static void winblit(pdfapp_t *app)
 	fillrect(x0+2, y1, gapp.image->w, 2);
 	fillrect(x1, y0+2, 2, gapp.image->h);
 
-	if (gapp.iscopying || justcopied)
-		invertcopyrect();
+        pix = XCreatePixmap(xdpy, xwin,
+                            app->image->w, app->image->h,
+                            ximage_get_depth());
 
-	ximage_blit(xwin, xgc,
+	ximage_blit(pix, xgc,
 		x0, y0,
 		gapp.image->samples,
 		0, 0,
@@ -297,8 +312,11 @@ static void winblit(pdfapp_t *app)
 		gapp.image->h,
 		gapp.image->w * gapp.image->n);
 
-	if (gapp.iscopying || justcopied)
-		invertcopyrect();
+	
+        drawselection(app, pix);
+
+        XCopyArea(xdpy, pix, xwin, xgc, 0,0,gapp.image->w, gapp.image->h,0,0);
+        XFreePixmap(xdpy,pix);
 }
 
 void winrepaint(pdfapp_t *app)

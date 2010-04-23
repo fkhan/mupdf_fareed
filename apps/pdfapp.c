@@ -1,6 +1,7 @@
 #include <fitz.h>
 #include <mupdf.h>
 #include "pdfapp.h"
+#include "kno_pdfapp.h"
 
 enum panning
 {
@@ -10,6 +11,7 @@ enum panning
 };
 
 static void pdfapp_showpage(pdfapp_t *app, int loadpage, int drawpage);
+
 
 static void pdfapp_warn(pdfapp_t *app, const char *fmt, ...)
 {
@@ -128,7 +130,7 @@ void pdfapp_open(pdfapp_t *app, char *filename)
 	app->rotate = 0;
 	app->panx = 0;
 	app->pany = 0;
-
+	kno_changeHighlightColor(app, 0xff00ff00);
 	pdfapp_showpage(app, 1, 1);
 }
 
@@ -213,7 +215,9 @@ static void pdfapp_showpage(pdfapp_t *app, int loadpage, int drawpage)
 		if (app->page)
 			pdf_droppage(app->page);
 		app->page = nil;
-
+		//code change by kakai
+		kno_clearselect(app);
+		//code change by kakai
 		pdf_flushxref(app->xref, 0);
 
 		obj = pdf_getpageobject(app->xref, app->pageno);
@@ -257,6 +261,11 @@ static void pdfapp_showpage(pdfapp_t *app, int loadpage, int drawpage)
 		fz_freedevice(tdev);
 
 		fz_freedisplaylist(list);
+
+		//code change by kakai
+                kno_allocselection(app);
+                kno_applyselect(app);
+		//code change by kakai
 
 		winconvert(app, app->image);
 	}
@@ -547,6 +556,7 @@ void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int sta
 		}
 		if (btn == 3 && !app->ispanning)
 		{
+			kno_clearselect(app); //code change by kakai
 			app->iscopying = 1;
 			app->selx = x;
 			app->sely = y;
@@ -613,6 +623,7 @@ void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int sta
 		app->selr.x1 = MAX(app->selx, x);
 		app->selr.y0 = MIN(app->sely, y);
 		app->selr.y1 = MAX(app->sely, y);
+		kno_onselect(app); //code change by kakai
 		winrepaint(app);
 	}
 

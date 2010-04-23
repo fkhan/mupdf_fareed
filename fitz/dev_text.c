@@ -39,6 +39,12 @@ fz_newtextspan(void)
 	line = fz_malloc(sizeof(fz_textspan));
 	line->len = 0;
 	line->cap = 0;
+	//code change by Kakai
+        line->bbox.x0 = 0;
+        line->bbox.x1 = 0;
+        line->bbox.y0 = 0;
+        line->bbox.y1 = 0;
+	//code change by Kakai
 	line->text = nil;
 	line->next = nil;
 	return line;
@@ -54,7 +60,7 @@ fz_freetextspan(fz_textspan *line)
 }
 
 static void
-fz_addtextchar(fz_textspan *line, int x, int y, int c)
+fz_addtextchar(fz_textspan *line, int x, int y, int w, int h, int c)
 {
 	if (line->len + 1 >= line->cap)
 	{
@@ -64,7 +70,25 @@ fz_addtextchar(fz_textspan *line, int x, int y, int c)
 	line->text[line->len].x = x;
 	line->text[line->len].y = y;
 	line->text[line->len].c = c;
-	line->len ++;
+        line->text[line->len].w = w;
+
+        if (!line->bbox.x0) {
+            line->bbox.x0 = x;
+            line->bbox.y0 = y;
+            line->bbox.y1 = y+h;
+        }
+        else {
+            int y0, y1;
+            y0 = y;
+            y1 = y+h;
+            if (y0 < line->bbox.y0)
+                line->bbox.y0 = y0;
+            if (y1 > line->bbox.y1)
+                line->bbox.y1 = y1;
+        }
+
+        line->bbox.x1 = x + w;
+        line->len ++;
 }
 
 void
@@ -94,14 +118,16 @@ fz_debugtextspan(fz_textspan *line)
 static void
 fz_textextractline(fz_textspan **line, fz_text *text, fz_matrix ctm, fz_point *oldpt)
 {
-	fz_font *font = text->font;
+fz_font *font = text->font;
 	fz_matrix tm = text->trm;
 	fz_matrix inv = fz_invertmatrix(text->trm);
 	fz_matrix trm;
+        fz_matrix foo = tm;
+        fz_rect bbox;
 	float dx, dy;
 	fz_point p;
 	float adv;
-	int i, x, y, fterr;
+	int i, x, y, w, h, fterr;
 
 	if (font->ftface)
 	{
@@ -116,7 +142,8 @@ fz_textextractline(fz_textspan **line, fz_text *text, fz_matrix ctm, fz_point *o
 		tm.e = text->els[i].x;
 		tm.f = text->els[i].y;
 		trm = fz_concat(tm, ctm);
-		x = trm.e;
+		
+                x = trm.e;
 		y = trm.f;
 		trm.e = 0;
 		trm.f = 0;
@@ -147,7 +174,19 @@ fz_textextractline(fz_textspan **line, fz_text *text, fz_matrix ctm, fz_point *o
 			oldpt->x += adv;
 		}
 
-		if (fabs(dy) > 0.2)
+               
+                bbox.x0 = font->bbox.x0 / 1000.0;
+                bbox.x1 = bbox.x0 + adv;
+                bbox.y0 = font->bbox.y0 / 1000.0;
+                bbox.y1 = font->bbox.y1 / 1000.0;
+                bbox = fz_transformrect(foo, bbox);
+
+                w = bbox.x1 - bbox.x0;
+                h = bbox.y1 - bbox.y0;
+                x += bbox.x0;
+                y = y - h - bbox.y0;
+
+                if (fabs(dy) > 0.2)
 		{
 			fz_textspan *newline;
 			newline = fz_newtextspan();
@@ -156,10 +195,10 @@ fz_textextractline(fz_textspan **line, fz_text *text, fz_matrix ctm, fz_point *o
 		}
 		else if (fabs(dx) > 0.2)
 		{
-			fz_addtextchar(*line, x, y, ' ');
+			fz_addtextchar(*line, x, y, w, h, ' ');
 		}
 
-		fz_addtextchar(*line, x, y, text->els[i].ucs);
+		fz_addtextchar(*line, x, y, w, h, text->els[i].ucs);
 	}
 }
 

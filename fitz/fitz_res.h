@@ -111,6 +111,7 @@ struct fz_textspan_s
 {
 	int ascender, descender;
 	int len, cap;
+        fz_bbox bbox;
 	fz_textchar *text;
 	fz_textspan *next;
 };
