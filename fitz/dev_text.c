@@ -197,7 +197,8 @@ fz_font *font = text->font;
 		{
 			fz_addtextchar(*line, x, y, w, h, ' ');
 		}
-
+//Code change by Kakai
+//line->listitemid = text->id;
 		fz_addtextchar(*line, x, y, w, h, text->els[i].ucs);
 	}
 }

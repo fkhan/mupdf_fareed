@@ -130,7 +130,12 @@ void pdfapp_open(pdfapp_t *app, char *filename)
 	app->rotate = 0;
 	app->panx = 0;
 	app->pany = 0;
-	kno_changeHighlightColor(app, 0xff00ff00);
+
+	//code change by kakai
+	//highlight color settings
+	kno_setHighlightColor(app, 0x00ffff00);
+	//code change by kakai
+
 	pdfapp_showpage(app, 1, 1);
 }
 
@@ -593,6 +598,11 @@ void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int sta
 
 	else if (state == -1)
 	{
+		//Code change by Kakai
+		//Hit testing
+		kno_hitdata *hitdata = kno_gethitdata(app, x, y);
+		printf("hit test char is: %c\n", hitdata->ucs);
+		//Code change by Kakai
 		if (app->iscopying)
 		{
 			app->iscopying = 0;
@@ -623,7 +633,15 @@ void pdfapp_onmouse(pdfapp_t *app, int x, int y, int btn, int modifiers, int sta
 		app->selr.x1 = MAX(app->selx, x);
 		app->selr.y0 = MIN(app->sely, y);
 		app->selr.y1 = MAX(app->sely, y);
-		kno_onselect(app); //code change by kakai
+		//code change by kakai
+		//IsHighlightable and selection testing
+		int closestx, closesty;
+		closestx = closesty = 0;
+		if (kno_ishighlightable(app, x, y, &closestx, &closesty) == 1)
+			kno_onselect(app); //code change by kakai
+		else
+{ printf("x is %d\n", closestx);  printf("y is %d\n", closesty); }
+		//code change by kakai
 		winrepaint(app);
 	}
 

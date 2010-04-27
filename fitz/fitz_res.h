@@ -111,7 +111,10 @@ struct fz_textspan_s
 {
 	int ascender, descender;
 	int len, cap;
+	//code change by kakai
         fz_bbox bbox;
+	int listitemid;
+	//code change by kakai
 	fz_textchar *text;
 	fz_textspan *next;
 };

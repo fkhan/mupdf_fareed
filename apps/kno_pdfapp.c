@@ -3,7 +3,7 @@
 #include "pdfapp.h"
 #include "kno_pdfapp.h"
 
-void kno_addHighlight(pdfapp_t *app, int x0, int y0, int x1, int y1)
+int kno_addHighlight(pdfapp_t *app, int x0, int y0, int x1, int y1)
 {
 	app->selr.x0 = x0;
 	app->selr.x1 = x1;
@@ -11,16 +11,17 @@ void kno_addHighlight(pdfapp_t *app, int x0, int y0, int x1, int y1)
 	app->selr.y1 = y1;
 	kno_onselect(app);
 	winrepaint(app);
+	return 1;
 }
 
-void kno_changeHighlightColor(pdfapp_t *app, unsigned long color)
+void kno_setHighlightColor(pdfapp_t *app, unsigned long color)
 {
 	app->highlightedcolor = color;
 }
 
 void kno_UpdateHighlight(pdfapp_t *app, int x0, int y0, int x1, int y1)
 {
-	kno_addHighlight(app, x0, y0, x1, y1);
+	//bool abc = kno_addHighlight(app, x0, y0, x1, y1);
 }
 
 kno_highlightedtext *
@@ -156,10 +157,90 @@ void kno_onselect(pdfapp_t *app)
     kno_applyselect(app);
 }
 
-
 void kno_allocselection(pdfapp_t *app)
 {
     /* JB: do something smarter */
     if (!app->selrects)
         app->selrects = malloc(sizeof(*app->selrects) * 16000);
 }
+
+int kno_ishighlightable(pdfapp_t *app, int x, int y, int *closestx, int *closesty)
+{
+    fz_textspan *ln;
+    int lx0 = app->image->x + x - app->panx;
+    int ly0 = app->image->y + y - app->pany;
+    int i, difx, dify;
+    difx = dify = 0;
+
+    for (ln = app->text; ln; ln = ln->next) {
+        if (ln->len > 0) {
+            for (i = 0; i < ln->len; i++)
+	    {
+                int x0 = ln->text[i].x;
+		int x1 = ln->text[i].x + ln->text[i].w;
+                int y0 = ln->bbox.y0;//ln->text[i].y;
+		int y1 = ln->bbox.y1;
+
+                if (lx0 >= x0 && lx0 <= x1 && ly0 >= y0 && ly0 <= y1)
+		{
+			return 1; //Found
+		}
+		else
+		{
+			if (MAX(x0, lx0) - MIN(x0, lx0) < difx || difx==0)
+			{
+				difx = MAX(x0, lx0) - MIN(x0, lx0);
+				*closestx = x0;
+			}
+			if (MAX(y0, ly0) - MIN(y0, ly0) < dify || dify == 0) 
+			{
+				dify = MAX(y0, ly0) - MIN(y0, ly0);
+				*closesty = y0;
+			}
+		}
+		//else if (x < lx0 || y < ly0) return 0; //not found 
+		// it can't be acievable becuase lines are placed in list in reverse order
+            }
+        }
+    }
+
+    return 0; //not found
+}
+
+kno_hitdata *kno_gethitdata(pdfapp_t *app, int x, int y)
+{
+    fz_textspan *ln;
+    kno_hitdata *hitdata;
+    hitdata = fz_malloc(sizeof(kno_hitdata));
+    hitdata->x = -1;
+    hitdata->y = -1;
+    hitdata->ucs = -1;
+
+    int i;
+
+    int lx = app->image->x + x - app->panx;
+    int ly = app->image->y + y - app->pany;
+
+    for (ln = app->text; ln; ln = ln->next) {
+        if (ln->len > 0) {
+            for (i = 0; i < ln->len; i++) {
+
+                int x0 = ln->text[i].x;
+		int x1 = ln->text[i].x + ln->text[i].w;
+                int y0 = ln->text[i].y;
+		int y1 = ln->bbox.y1;
+                if (lx >= x0 && lx <= x1 && ly >= y0 && ly <= y1)
+		{
+			hitdata->x = x0;
+			hitdata->y = y0;
+			hitdata->ucs = ln->text[i].c;
+			return hitdata; //found
+		}
+            }
+        }
+    }
+
+    return hitdata; //not found
+}
+
+
